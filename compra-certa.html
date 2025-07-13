@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compra Certa - Seu Assistente de Compras Online</title>
+    <!-- Carrega Tailwind CSS para um design responsivo e minimalista -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Define a fonte Inter para todo o corpo, para um visual moderno e limpo */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5; /* Cor de fundo suave para a página */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Garante que o corpo ocupe a altura total da viewport */
+        }
+        /* Estilo para o container principal, centralizando e limitando a largura */
+        .container {
+            max-width: 95%; /* Largura máxima para o conteúdo, um pouco maior para telas pequenas */
+            margin: 0 auto; /* Centraliza o container na página */
+            padding: 1rem; /* Espaçamento interno */
+            flex-grow: 1; /* Permite que o container cresça para preencher o espaço disponível */
+        }
+        /* Estilo para cada card de produto nos resultados */
+        .product-card {
+            background-color: #ffffff; /* Fundo branco para o card */
+            border-radius: 0.75rem; /* Cantos arredondados */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave para profundidade */
+            margin-bottom: 1rem; /* Margem inferior entre os cards */
+            padding: 1rem; /* Espaçamento interno do card */
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease-in-out; /* Transição suave para o efeito hover */
+        }
+        /* Efeito ao passar o mouse sobre o card */
+        .product-card:hover {
+            transform: translateY(-5px); /* Leve levantamento do card */
+        }
+        /* Estilo para os links dentro dos cards de produto */
+        .product-card a {
+            color: #1a73e8; /* Cor azul para o link */
+            text-decoration: none; /* Remove sublinhado padrão */
+            font-weight: 500; /* Peso da fonte */
+        }
+        /* Efeito ao passar o mouse sobre o link */
+        .product-card a:hover {
+            text-decoration: underline; /* Adiciona sublinhado ao passar o mouse */
+        }
+        /* Estilo para o indicador de carregamento, inicialmente escondido */
+        .loading-indicator {
+            display: none; /* Escondido por padrão */
+            text-align: center;
+            padding: 1rem;
+            color: #555; /* Cor cinza para o texto */
+        }
+        /* Estilo para o botão de busca, com transição para efeitos hover/focus */
+        .search-button {
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        .search-button:active {
+            transform: scale(0.98); /* Pequeno encolhimento ao clicar */
+        }
+        /* Estilo para o campo de input */
+        .search-input {
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container flex flex-col items-center py-6">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-8 text-center">
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                Compra Certa
+            </span>
+        </h1>
+
+        <div class="w-full max-w-lg flex flex-col sm:flex-row gap-4 mb-8">
+            <input type="text" id="searchInput" placeholder="Digite o nome do produto (ex: Smart TV 55 polegadas)..."
+                   class="search-input flex-grow p-4 text-lg border border-gray-300 rounded-xl shadow-md
+                          focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500">
+            <button id="searchButton"
+                    class="search-button bg-gradient-to-r from-blue-600 to-purple-600 text-white
+                           px-8 py-4 text-lg font-semibold rounded-xl shadow-lg
+                           hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-blue-300
+                           focus:ring-offset-2 transition duration-300 ease-in-out transform hover:scale-105">
+                Buscar Preços
+            </button>
+        </div>
+
+        <div id="loadingIndicator" class="loading-indicator flex items-center justify-center gap-3 text-lg font-medium text-gray-700">
+            <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Buscando os melhores preços...
+        </div>
+
+        <div id="results" class="w-full max-w-lg mt-6">
+            <!-- Os resultados da busca serão inseridos aqui -->
+        </div>
+
+        <footer class="mt-auto py-6 text-center text-gray-500 text-sm">
+            &copy; 2025 Compra Certa. Todos os direitos reservados.
+        </footer>
+    </div>
+
+    <script>
+        // ATENÇÃO: Substitua esta URL pela URL do seu backend Node.js hospedado no Render.com!
+        // Exemplo: const BACKEND_URL = 'https://seu-servico-web.onrender.com';
+        const BACKEND_URL = 'https://compra-certa-backend.onrender.com'; // <--- SUBSTITUA AQUI PELA SUA URL DO RENDER
+
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const resultsDiv = document.getElementById('results');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        // Função assíncrona para buscar produtos no backend
+        async function searchProducts() {
+            const searchTerm = searchInput.value.trim(); // Obtém o termo de busca e remove espaços em branco
+            if (!searchTerm) {
+                // Exibe uma mensagem se o campo de busca estiver vazio
+                alert('Por favor, digite um termo para buscar.');
+                return;
+            }
+
+            resultsDiv.innerHTML = ''; // Limpa os resultados anteriores para uma nova busca
+            loadingIndicator.style.display = 'flex'; // Mostra o indicador de carregamento (flex para centralizar ícone e texto)
+            searchButton.disabled = true; // Desabilita o botão de busca para evitar múltiplas requisições
+            searchInput.disabled = true; // Desabilita o campo de input também
+
+            try {
+                // Constrói a URL completa para a requisição ao backend, codificando o termo de busca
+                const url = `${BACKEND_URL}/buscar?q=${encodeURIComponent(searchTerm)}`;
+                console.log('Fazendo requisição para:', url);
+
+                // Realiza a requisição HTTP GET usando a Fetch API
+                const response = await fetch(url);
+
+                // Verifica se a resposta da requisição foi bem-sucedida (status 200-299)
+                if (!response.ok) {
+                    // Se a resposta não for OK, tenta ler o erro do JSON retornado pelo backend
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Erro HTTP: ${response.status} - ${response.statusText}`);
+                }
+
+                const products = await response.json(); // Converte a resposta para um objeto JavaScript (array de produtos)
+                console.log('Produtos recebidos:', products);
+
+                if (products.length === 0) {
+                    // Se nenhum produto for encontrado, exibe uma mensagem
+                    resultsDiv.innerHTML = '<p class="text-center text-gray-600 mt-4 p-4 bg-white rounded-lg shadow-sm">Nenhum produto encontrado para sua busca. Tente um termo diferente.</p>';
+                } else {
+                    // Itera sobre o array de produtos e cria um card HTML para cada um
+                    products.forEach(product => {
+                        const productCard = document.createElement('div');
+                        productCard.className = 'product-card'; // Aplica as classes CSS definidas para o card
+
+                        // Preenche o HTML interno do card com os dados do produto
+                        productCard.innerHTML = `
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">${product.nome}</h3>
+                            <p class="text-3xl font-bold text-blue-700 mb-3">${product.preco}</p>
+                            <a href="${product.link}" target="_blank" class="text-blue-600 hover:underline text-lg font-medium">Ver Produto na Loja &rarr;</a>
+                        `;
+                        resultsDiv.appendChild(productCard); // Adiciona o card ao div de resultados
+                    });
+                }
+
+            } catch (error) {
+                // Captura e exibe qualquer erro que ocorra durante a requisição ou processamento
+                console.error('Erro ao buscar produtos:', error);
+                resultsDiv.innerHTML = `<p class="text-center text-red-600 mt-4 p-4 bg-red-100 border border-red-400 rounded-lg shadow-sm">
+                                            Ocorreu um erro: ${error.message}. <br>
+                                            Verifique se o seu backend no Render está online e se a URL está correta.
+                                        </p>`;
+            } finally {
+                // Ações que sempre devem ser executadas, independentemente de sucesso ou erro
+                loadingIndicator.style.display = 'none'; // Esconde o indicador de carregamento
+                searchButton.disabled = false; // Habilita o botão de busca
+                searchInput.disabled = false; // Habilita o campo de input
+            }
+        }
+
+        // Adiciona um listener de evento para o clique no botão de busca
+        searchButton.addEventListener('click', searchProducts);
+
+        // Adiciona um listener de evento para a tecla "Enter" no campo de busca
+        searchInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                searchProducts(); // Chama a função de busca quando Enter é pressionado
+            }
+        });
+    </script>
+</body>
+</html>
+
