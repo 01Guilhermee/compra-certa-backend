@@ -1,5 +1,5 @@
 {
-  "name": "https://compra-certa-backend.onrender.com",
+  "name": "compra-certa-backend.json",
   "version": "1.0.0",
   "description": "Backend Node.js para o assistente de compras Compra Certa",
   "main": "index.js",
